@@ -1,5 +1,11 @@
+# Fotos  
+Simple image web image viewer and folder based image organiser
+## Screenshot  
+![Kitten](static/img/demo.png "Screenshot of ui")
 # dependency  
  * ffmpeg
+ * flask
+ * Pillow
 # Todo  
  * security
 # svg icons
