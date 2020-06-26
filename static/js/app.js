@@ -55,6 +55,7 @@ function loadFolder(path) {
             url: "",
             data: {path: path},
             success: function (data) {
+                $("#current-path").text(path)
                 // clearing
                 folders.html("")
                 files.html("")

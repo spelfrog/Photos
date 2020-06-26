@@ -10,6 +10,9 @@ body{
     padding: .1em;
     margin: .1em;
 }
+#current-path{
+    float: right;
+}
 .folder, .file, .file img {
     display: inline-block;
 }
