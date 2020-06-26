@@ -1,0 +1,77 @@
+:root{
+    --images-per-row: 6
+}
+body{
+    margin: 0;
+}
+#nav *{
+    display: inline-block;
+    background: gray;
+    padding: .1em;
+    margin: .1em;
+}
+.folder, .file, .file img {
+    display: inline-block;
+}
+.folder {
+    background: gray;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 8px;
+}
+#files{
+    font-size: 0;
+}
+.show-only-favs .file {
+    display: none;
+}
+.show-only-favs .file.fav {
+    display: inline-block;
+}
+.file {
+    width: calc( 100% / var(--images-per-row) );
+    position: relative;
+}
+.file .overlay{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.file .overlay .icons{
+    opacity: 0;
+    transition: opacity 2000ms;
+    font-size: 64px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.file .overlay:hover .icons{
+    transition: opacity 500ms;
+    opacity: 1;
+}
+.file.type-video .overlay{
+    background: rgba(128, 128, 128, 0.34);
+}
+.file.type-image .overlay{
+
+}
+.file.type-other .overlay{
+    background: rgba(189, 81, 81, 0.34);
+}
+
+.file img{
+    width: 100%;
+}
+.file img.orientation-1{
+    transform: rotate(0deg);
+}
+.file img.orientation-6{
+    transform: rotate(90deg);
+}
+.file img.orientation-8{
+    transform: rotate(270deg);
+}
