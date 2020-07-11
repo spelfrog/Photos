@@ -12,13 +12,20 @@
     <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 </head>
 <body>
-<div id="nav">
-    <div onclick="increase_size()">+</div>
-    <div onclick="decrease_size()">-</div>
-    <div onclick="show_only_favs()">Show Favorites</div>
-    <div onclick="show_all()">Show All</div>
-    <div id="current-path">loading..</div>
+<div class="nav">
+    <div id="current-path"></div>
+    <div id="options">
+        <div onclick="increase_size()"><i class="fas fa-plus"></i></div>
+        <div onclick="decrease_size()"><i class="fas fa-minus"></i></div>
+        <div class="dummy"></div>
+        <div onclick="show_only_videos()"><i class="filter video-filter fas fa-film"></i></div>
+        <div onclick="show_only_images()"><i class="filter image-filter fas fa-image"></i></div>
+        <div onclick="show_only_favs()"><i class="filter fav-filter fas fa-heart"></i></div>
+        <div onclick="show_all()"><i class="fas fa-times"></i></i></div>
+    </div>
 </div>
+
+
 <div id="folders">loading..</div>
 <div id="files">loading..</div>
 </body>

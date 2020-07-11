@@ -125,6 +125,9 @@ def get_files():
                             save_video_cache = True
                         except subprocess.CalledProcessError:
                             pass
+                else:
+                    # skipping files without video or image extension
+                    continue
 
                 files.append({
                     'name': f,

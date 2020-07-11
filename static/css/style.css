@@ -1,34 +1,81 @@
 :root{
-    --images-per-row: 6
+    --images-per-row: 6;
+    --color-dark: #000000;
+    --color-dark-secondary: #14213d;
+    --color-highlight: #fca311;
+    --color-light-secondary: #aaa;
+    --color-light-primary: #ffffff;
 }
 body{
     margin: 0;
+    background-color: var(--color-dark);
 }
-#nav *{
+.nav {
+    font-size: 2em;
+    font-family: sans-serif;
+    border-bottom: var(--color-dark-secondary) solid 1px;
+    padding: .2em;
+    color: var(--color-light-primary);
+}
+#current-path {
     display: inline-block;
-    background: gray;
-    padding: .1em;
-    margin: .1em;
 }
-#current-path{
+#current-path>span{
+    margin: .3em .1em;
+    padding: 0 .2em;
+    vertical-align: middle;
+}
+#current-path .folder-name{
+    border-radius: 0.2em;
+}
+#current-path .folder-name:hover{
+    background-color: var(--color-dark-secondary);
+}
+#current-path .divider{
+    color: var(--color-light-secondary);
+    font-size: 60%;
+    padding-bottom: 0.1em;
+}
+#options{
     float: right;
+    display: inline-block;
 }
+#options>div{
+    display: inline-block;
+}
+#options>div .filter{
+    color: var(--color-light-secondary);
+}
+#options>div .filter.active{
+    color: var(--color-light-primary);
+}
+
 .folder, .file, .file img {
     display: inline-block;
 }
 .folder {
-    background: gray;
+    color: var(--color-light-primary);
+    border: var(--color-dark-secondary) solid 3px;
     border-radius: 4px;
     padding: 8px;
     margin: 8px;
+    transition: background-color 500ms;
+}
+.folder:hover {
+    background-color: var(--color-dark-secondary);
 }
 #files{
     font-size: 0;
 }
-.show-only-favs .file {
+.show-only-favs .file,
+.show-only-images .file,
+.show-only-videos .file {
     display: none;
 }
-.show-only-favs .file.fav {
+
+.show-only-favs .file.fav,
+.show-only-images .file.type-image,
+.show-only-videos .file.type-video {
     display: inline-block;
 }
 .file {
