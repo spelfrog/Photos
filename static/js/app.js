@@ -71,22 +71,35 @@ function loadFolder(path) {
                     let orientation = file['meta']['Orientation']
                     let type = "other";
                     let fav = file['is_fav'] ? "fas" : "far"
-                    if (file['is_video'])
+                    let icons = $("<div>").addClass("overlay")
+
+                    if (file['is_video']) {
                         type = "video"
-                    else if (file['is_image'])
+                        icons.append(
+                            // video length bubble
+                            $("<div>").addClass("length").html(
+                                "<i class=\"fas fa-fw fa-play\"></i> " +
+                                Math.round(file['meta']['duration']*10)/10 + "s"
+                            )
+                        )
+                    }else if (file['is_image'])
                         type = "image"
+
+                    // fav / heard icon
+                    icons.append(
+                        $("<div>").addClass("fav").append(
+                            $("<i class=\""+fav+" fa-heart\"></i>").on("click", set_fav)
+                        )
+                    )
+
+
                     files.append(
                         $("<div>").addClass("file").addClass( file['is_fav']?"fav":"").addClass("type-" + type).data("path", file['path']).append(
                             $("<img src='/image?preview=true&path=" + file['path'] + "'>")
                                 .addClass("orientation-" + orientation)
                                 .prop("title", file['name'] + "\n" + file['date'])
-                        ).append(
-                            $("<div>").addClass("overlay").append(
-                                $("<div>").addClass("icons").append(
-                                    $("<i class=\""+fav+" fa-heart\"></i>").on("click", set_fav)
-                                )
-                            )
-                        ))
+                        ).append(icons)
+                    )
                 })
             },
         });
