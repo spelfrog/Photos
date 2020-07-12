@@ -95,21 +95,42 @@ function set_fav() {
 function setPathDisplay(pathString) {
     let path = $("#current-path").html("")
     let folders = pathString.split("/")
-    path.append($("<span>").text("Root").addClass("folder-name"))
-    folders.forEach(folder => {
+    // root folder
+    path.append(
+        $("<span>").text("Root").addClass("folder-name")
+            .on("click", () => loadFolder("."))
+    )
+
+    // rest of path
+    folders.forEach((folder, index) => {
         if (folder === ".") return;
         path.append($("<span>").text(">").addClass("divider"))
-        path.append($("<span>").text(folder).addClass("folder-name"))
+        path.append($("<span>").text(folder).addClass("folder-name")
+            .on("click", (data) => loadFolder(folders.slice(0, index + 1).join("/")))
+        )
     })
+
+    window.history.pushState({"path": pathString}, "", "?path=" + encodeURI(pathString));
 }
 
+window.onpopstate = function (e) {
+    if (e.state) {
+        loadFolder(e.state.path)
+    }
+};
+
+
 function loadFolder(path) {
+    let loading = $("#loading-indicator").addClass("active")
     let files = $('#files');
     let folders = $('#folders');
     $.ajax("/files",
         {
             url: "",
             data: {path: path},
+            complete: function () {
+                loading.removeClass("active")
+            },
             success: function (data) {
                 setPathDisplay(path)
                 // clearing
@@ -161,7 +182,17 @@ function loadFolder(path) {
         });
 }
 
+function get_url_parameter(param) {
+    let key_value_pairs = window.location.search.substring(1).split('&');
+    for (let i = 0; i < key_value_pairs.length; i++) {
+        let key_value = key_value_pairs[i].split('=');
+        if (key_value[0] === param)
+            return decodeURI(key_value[1]);
+    }
+}
+
 $(document).ready(function () {
-    loadFolder(".")
+    let path = get_url_parameter("path") || "."
+    loadFolder(path)
     updateFilterIcons();
 })

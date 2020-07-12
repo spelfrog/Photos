@@ -190,6 +190,8 @@ def get_preview(image):
 
 def create_image_preview(image, preview):
     im = ImageOps.fit(Image.open(image), (preview_size, preview_size), Image.ANTIALIAS)
+    if not preview.parent.exists():
+        preview.parent.mkdir()
     im.save(preview)
 
 

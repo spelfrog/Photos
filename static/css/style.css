@@ -50,6 +50,34 @@ body{
     color: var(--color-light-primary);
 }
 
+#loading-indicator{
+    opacity: 0;
+    height: 1px;
+    background-color: var(--color-highlight);
+    width: 10%;
+    position: absolute;
+    animation: loading infinite 1s ease-in-out;
+    transition: opacity 2s;
+}
+#loading-indicator.active{
+    opacity: 1;
+    transition: opacity 200ms;
+}
+@keyframes loading {
+    0%{
+        width: 0;
+        left: 0;
+    }
+    50%{
+        width: 100%;
+        left: 0;
+    }
+    100%{
+        width: 0;
+        left: 100%;
+    }
+}
+
 .folder, .file, .file img {
     display: inline-block;
 }
@@ -67,17 +95,18 @@ body{
 #files{
     font-size: 0;
 }
-.show-only-favs .file,
-.show-only-images .file,
-.show-only-videos .file {
+
+.show-only-favs .file{
+    display: none;
+}
+.show-only-favs .file.fav{
+    display: inline-block;
+}
+.show-only-images .file.type-video,
+.show-only-videos .file.type-image {
     display: none;
 }
 
-.show-only-favs .file.fav,
-.show-only-images .file.type-image,
-.show-only-videos .file.type-video {
-    display: inline-block;
-}
 .file {
     width: calc( 100% / var(--images-per-row) );
     position: relative;
