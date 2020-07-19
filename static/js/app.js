@@ -144,6 +144,13 @@ function loadFolder(path) {
                         })
                     )
                 })
+                folders.append(
+                    $("<div>").addClass("folder").text("+").prop("title", "New Folder")
+                        .on("click", function () {
+                            alert("Not implemented")
+                        })
+                )
+
                 data['files'].forEach(file => {
                     let orientation = file['meta']['Orientation']
                     let type = "other";
@@ -152,11 +159,13 @@ function loadFolder(path) {
 
                     if (file['is_video']) {
                         type = "video"
+                        let icon = "fas fa-fw fa-play"
+                        if (file['meta']['VideoFrameRate'] > 80)
+                            icon = "fas fa-fw fa-forward"
                         icons.append(
                             // video length bubble
                             $("<div>").addClass("length").html(
-                                "<i class=\"fas fa-fw fa-play\"></i> " +
-                                Math.round(file['meta']['duration'] * 10) / 10 + "s"
+                                "<i class=\""+icon+"\"></i> " + file['meta']['MediaDuration']
                             )
                         )
                     } else if (file['is_image'])

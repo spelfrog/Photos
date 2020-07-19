@@ -17,7 +17,7 @@ app = Flask(__name__)
 image_types = ['.jpg', '.JPG']
 video_types = ['.mp4', ".MP4"]
 preview_size = 256
-video_cache_version = 1
+video_cache_version = 2
 fav_folder_name = ".favorites"
 
 
@@ -73,6 +73,9 @@ def get_files():
         print("Using meta cache.")
         with open(video_meta_cache_path) as json_file:
             video_meta_cache = json.load(json_file)
+            # deleting cache if outdated
+            if video_meta_cache['version'] != video_cache_version:
+                video_meta_cache = {'version': video_cache_version}
     files = []
     folders = []
     if path.exists():
@@ -118,9 +121,9 @@ def get_files():
                     else:
                         try:
                             result = subprocess.check_output(
-                                ["ffprobe", file.name, "-print_format", "json", "-v", "quiet", "-show_format"],
+                                ["exiftool", "-q", "-j", file.name],
                                 cwd=file.parent)
-                            meta = json.loads(result.decode())["format"]
+                            meta = json.loads(result.decode())[0]
                             video_meta_cache[file.name] = meta
                             save_video_cache = True
                         except subprocess.CalledProcessError:
@@ -158,8 +161,8 @@ def get_date_of_file(file):
     if file['is_image'] and file['meta'] is not None and 'DateTime' in file['meta']:
         date = datetime.strptime(file['meta']['DateTime'], "%Y:%m:%d %H:%M:%S")
     elif file['is_video'] and file['meta'] is not None and \
-            'tags' in file['meta'] and 'creation_time' in file['meta']['tags']:
-        date = datetime.strptime(file['meta']['tags']['creation_time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+            'MediaCreateDate' in file['meta']:
+        date = datetime.strptime(file['meta']['MediaCreateDate'], "%Y:%m:%d %H:%M:%S")
     else:
         date = datetime.fromtimestamp(0)
 

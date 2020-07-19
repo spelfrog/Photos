@@ -7,6 +7,7 @@ Simple image web image viewer and folder based image organiser
  * Samsung S8
 # dependency  
  * ffmpeg
+ * exiftool
  * flask
  * Pillow
 # Todo  
