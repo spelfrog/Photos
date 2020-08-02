@@ -161,3 +161,27 @@ body{
 .file img.orientation-8{
     transform: rotate(270deg);
 }
+#modal.active{
+    display: block;
+}
+
+#modal {
+    display: none;
+
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(0,0,0,0.75);
+    z-index: 1000;
+}
+#modal .media-container {
+    display: flex;
+    flex-direction: row;
+    padding: 10%;
+}
+#modal .media-container img,
+#modal .media-container video{
+
+}

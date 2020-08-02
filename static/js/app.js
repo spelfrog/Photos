@@ -9,7 +9,7 @@ function decrease_size() {
 function set_size(value) {
     document.documentElement.style
         .setProperty('--images-per-row', value);
-    updateSettings(value);
+    updateSettings({size: value});
 }
 
 function get_size() {
@@ -184,7 +184,13 @@ function loadFolder(path) {
 
 
                     files.append(
-                        $("<div>").addClass("file").addClass(file['is_fav'] ? "fav" : "").addClass("type-" + type).data("path", file['path']).append(
+                        $("<div>")
+                            .addClass("file")
+                            .addClass(file['is_fav'] ? "fav" : "")
+                            .addClass("type-" + type)
+                            .data("path", file['path'])
+                            .click(showInModal)
+                            .append(
                             $("<img src='/image?preview=true&path=" + file['path'] + "'>")
                                 .addClass("orientation-" + orientation)
                                 .prop("title", file['name'] + "\n" + file['date'])
@@ -210,11 +216,11 @@ function updateSettings(new_settings) {
     if (!settings) {
         settings = {}
     }
-    if (new_settings.size === undefined)
+    if (new_settings.size !== undefined)
         settings.size = new_settings.size
-    if (new_settings.show_only_favs === undefined)
+    if (new_settings.show_only_favs !== undefined)
         settings.show_only_favs = new_settings.show_only_favs
-    if (new_settings.show_only === undefined)
+    if (new_settings.show_only !== undefined)
         settings.show_only = new_settings.show_only
 
 
@@ -246,6 +252,31 @@ function loadSettings() {
         if(settings.show_only_favs)
             show_only_favs(settings.show_only_favs)
     }
+}
+function closeModal(){
+    $('#modal').removeClass('active')
+}
+function showInModal(){
+    let modal = $('#modal')
+    let media = $(this)
+    let path = "/image?path=" +media.data("path")
+
+    let media_dom
+    if(media.hasClass('type-video')){
+        media_dom = $('<video controls>')
+        media_dom.append(
+            $('<source>')
+                .text("Your browser does not support this video.")
+                .prop('src', path)
+                .prop('type', "video/mp4")
+        )
+
+    }else if(media.hasClass('type-image')){
+        media_dom = $('<img>').prop('src', path)
+    }
+
+    modal.find('.media-container').html('').append(media_dom)
+    modal.addClass('active')
 }
 
 $(document).ready(function () {

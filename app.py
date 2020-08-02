@@ -43,6 +43,8 @@ def get_image():
             return send_file(get_preview(path), mimetype=('image/' + str(path.suffixes[0])[1:]))
         elif is_image:
             return send_file(path, mimetype=('image/' + str(path.suffixes[0])[1:]))
+        elif is_video:
+            return send_file(path, mimetype=('video/' + str(path.suffixes[0])[1:]))
         else:
             return send_file("static/img/file-solid.svg", mimetype='image/svg+xml')
     else:
