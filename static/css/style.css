@@ -152,6 +152,9 @@ body{
 .file img.orientation-1{
     transform: rotate(0deg);
 }
+.file img.orientation-3{
+    transform: rotate(180deg);
+}
 .file img.orientation-6{
     transform: rotate(90deg);
 }

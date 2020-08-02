@@ -5,12 +5,12 @@ from datetime import datetime
 from os.path import isfile
 
 from PIL.ExifTags import TAGS
-from flask import send_file, jsonify, Response, abort
+from flask import send_file, jsonify, Response, abort, send_from_directory
 from flask import Flask
 from flask import request
 from pathlib import Path
 from os import listdir
-from PIL import Image, ImageOps, ExifTags, UnidentifiedImageError
+from PIL import Image, ImageOps, ExifTags, UnidentifiedImageError, ImageFile
 
 app = Flask(__name__)
 
@@ -19,6 +19,7 @@ video_types = ['.mp4', ".MP4"]
 preview_size = 256
 video_cache_version = 2
 fav_folder_name = ".favorites"
+root_folder = Path("Fotos")
 
 
 @app.route('/')
@@ -26,9 +27,15 @@ def index():
     return Response(open(Path("static") / "index.html"), mimetype="text/html")
 
 
+# @app.route('/stream/<path:filename>')
+# def download_file(filename):
+#     return send_from_directory(root_folder,
+#                                filename, as_attachment=True)
+
+
 @app.route('/image')
 def get_image():
-    path = Path(request.args.get('path'))
+    path = root_folder / Path(request.args.get('path'))
     if path.exists():
         is_video = path.suffixes[0] in video_types
         is_image = path.suffixes[0] in image_types
@@ -38,12 +45,13 @@ def get_image():
             return send_file(path, mimetype=('image/' + str(path.suffixes[0])[1:]))
         else:
             return send_file("static/img/file-solid.svg", mimetype='image/svg+xml')
-    abort(404)
+    else:
+        abort(404)
 
 
 @app.route('/fav')
 def set_fav():
-    path = Path(request.args.get('file'))
+    path = root_folder / Path(request.args.get('file'))
     value = request.args.get('value') == "true"
     print(request.args.get('value'), value, path)
     if path.exists():
@@ -65,7 +73,7 @@ def set_fav():
 
 @app.route('/files')
 def get_files():
-    path = Path(request.args.get('path'))
+    path = root_folder / Path(request.args.get('path'))
     video_meta_cache_path = path / ".meta_cache.json"
     save_video_cache = False
     video_meta_cache = {'version': video_cache_version}
@@ -77,6 +85,7 @@ def get_files():
             if video_meta_cache['version'] != video_cache_version:
                 video_meta_cache = {'version': video_cache_version}
     files = []
+    unknown_files = []
     folders = []
     if path.exists():
         for f in listdir(path):
@@ -84,8 +93,9 @@ def get_files():
             if file.name.startswith("."):
                 continue
             elif file.is_file():
-                is_image = file.suffixes[0] in image_types
-                is_video = file.suffixes[0] in video_types
+                last_suffixes_index = len(file.suffixes) - 1
+                is_image = file.suffixes[last_suffixes_index] in image_types
+                is_video = file.suffixes[last_suffixes_index] in video_types
 
                 is_fav = (file.parent / fav_folder_name / file.name).exists()
 
@@ -129,12 +139,13 @@ def get_files():
                         except subprocess.CalledProcessError:
                             pass
                 else:
-                    # skipping files without video or image extension
+                    # files without video or image extension
+                    unknown_files.append({'name': f, 'path': str(file.relative_to(root_folder))})
                     continue
 
                 files.append({
                     'name': f,
-                    'path': str(file),
+                    'path': str(file.relative_to(root_folder)),
                     'is_image': is_image,
                     'is_video': is_video,
                     'is_fav': is_fav,
@@ -143,7 +154,7 @@ def get_files():
             else:
                 folders.append({
                     'name': f,
-                    'path': str(file),
+                    'path': str(file.relative_to(root_folder)),
                 })
 
         files.sort(key=get_date_of_file)
@@ -152,7 +163,7 @@ def get_files():
             with open(video_meta_cache_path, 'w') as outfile:
                 json.dump(video_meta_cache, outfile)
 
-        return jsonify({'folders': folders, 'files': files})
+        return jsonify({'folders': folders, 'files': files, 'unknown_files': unknown_files})
     else:
         abort(404)
 
@@ -180,7 +191,6 @@ def get_preview(image):
     preview = path / ".preview" / file
     if is_video:
         preview = preview.parent / (preview.name + ".jpg")
-
     if not preview.exists():
         if is_image:
             create_image_preview(image, preview)
@@ -192,7 +202,9 @@ def get_preview(image):
 
 
 def create_image_preview(image, preview):
-    im = ImageOps.fit(Image.open(image), (preview_size, preview_size), Image.ANTIALIAS)
+    with Image.open(image) as image_stream:
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+        im = ImageOps.fit(image_stream, (preview_size, preview_size), Image.ANTIALIAS)
     if not preview.parent.exists():
         preview.parent.mkdir()
     im.save(preview)

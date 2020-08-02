@@ -9,6 +9,7 @@ function decrease_size() {
 function set_size(value) {
     document.documentElement.style
         .setProperty('--images-per-row', value);
+    updateSettings(value);
 }
 
 function get_size() {
@@ -16,22 +17,22 @@ function get_size() {
         .getPropertyValue('--images-per-row');
 }
 
-function show_only_favs() {
+function show_only_favs(active=undefined) {
     $("#files")
-        .toggleClass("show-only-favs");
+        .toggleClass("show-only-favs", active);
     updateFilterIcons();
 }
 
-function show_only_videos() {
+function show_only_videos(active=undefined) {
     $("#files")
-        .toggleClass("show-only-videos")
+        .toggleClass("show-only-videos", active)
         .removeClass("show-only-images")
     updateFilterIcons();
 }
 
-function show_only_images() {
+function show_only_images(active=undefined) {
     $("#files")
-        .toggleClass("show-only-images")
+        .toggleClass("show-only-images", active)
         .removeClass("show-only-videos")
     updateFilterIcons();
 }
@@ -43,21 +44,23 @@ function updateFilterIcons() {
 
     let files = $("#files")
 
-
     if (files.hasClass("show-only-favs"))
         fav.addClass("active")
 
+    let type
     if (files.hasClass("show-only-images")) {
         image.addClass("active")
+        type="images"
     } else if (files.hasClass("show-only-videos")) {
         video.addClass("active")
+        type="videos"
     } else {
         image.addClass("active")
         video.addClass("active")
+        type="all"
     }
 
-    if (files.hasClass("show-only-favs"))
-        fav.addClass("active")
+    updateSettings({show_only_favs: files.hasClass("show-only-favs"), show_only: type })
 }
 
 function show_all() {
@@ -133,6 +136,7 @@ function loadFolder(path) {
             },
             success: function (data) {
                 setPathDisplay(path)
+                console.log("Unknown files: ", data.unknown_files.length)
                 // clearing
                 folders.html("")
                 files.html("")
@@ -165,7 +169,7 @@ function loadFolder(path) {
                         icons.append(
                             // video length bubble
                             $("<div>").addClass("length").html(
-                                "<i class=\""+icon+"\"></i> " + file['meta']['MediaDuration']
+                                "<i class=\"" + icon + "\"></i> " + file['meta']['MediaDuration']
                             )
                         )
                     } else if (file['is_image'])
@@ -200,7 +204,52 @@ function get_url_parameter(param) {
     }
 }
 
+function updateSettings(new_settings) {
+    let settings = getSettings();
+    console.log("Settings:",settings)
+    if (!settings) {
+        settings = {}
+    }
+    if (new_settings.size === undefined)
+        settings.size = new_settings.size
+    if (new_settings.show_only_favs === undefined)
+        settings.show_only_favs = new_settings.show_only_favs
+    if (new_settings.show_only === undefined)
+        settings.show_only = new_settings.show_only
+
+
+    document.cookie = "settings=" + JSON.stringify(settings) + "; expires=Thu, 18 Dec 2022 12:00:00 UTC; SameSite=Strict";
+}
+
+function getSettings() {
+    let cookies = document.cookie.split(";")
+    cookies = cookies.filter(str => str.trim().startsWith("settings="))
+    if (cookies.length === 1)
+        return JSON.parse(cookies[0].split("settings=", 2)[1])
+    else
+        return undefined
+}
+
+function loadSettings() {
+    let settings = getSettings()
+    if (settings) {
+        if(settings.size)
+            set_size(settings.size)
+
+        if(settings.show_only === "all")
+            show_all()
+        else if(settings.show_only === "videos")
+            show_only_videos(true)
+        else if(settings.show_only === "images")
+            show_only_images(true)
+
+        if(settings.show_only_favs)
+            show_only_favs(settings.show_only_favs)
+    }
+}
+
 $(document).ready(function () {
+    loadSettings()
     let path = get_url_parameter("path") || "."
     loadFolder(path)
     updateFilterIcons();
