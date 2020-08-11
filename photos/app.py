@@ -5,26 +5,27 @@ from datetime import datetime
 from os.path import isfile
 
 from PIL.ExifTags import TAGS
-from flask import send_file, jsonify, Response, abort, send_from_directory
+from flask import send_file, jsonify, Response, abort, send_from_directory, render_template
 from flask import Flask
 from flask import request
 from pathlib import Path
 from os import listdir
 from PIL import Image, ImageOps, ExifTags, UnidentifiedImageError, ImageFile
 
-app = Flask(__name__)
-
 image_types = ['.jpg', '.JPG']
 video_types = ['.mp4', ".MP4"]
 preview_size = 256
 video_cache_version = 2
 fav_folder_name = ".favorites"
-root_folder = Path("Fotos")
+root_folder = Path("test_images")
+
+
+app = Flask(__name__, template_folder='template')
 
 
 @app.route('/')
 def index():
-    return Response(open(Path("static") / "index.html"), mimetype="text/html")
+    return render_template("index.html")
 
 
 # @app.route('/stream/<path:filename>')
