@@ -5,6 +5,7 @@ from datetime import datetime
 from os.path import isfile
 
 from PIL.ExifTags import TAGS
+from PIL.TiffImagePlugin import IFDRational
 from flask import send_file, jsonify, Response, abort, send_from_directory, render_template
 from flask import Flask
 from flask import request
@@ -18,7 +19,6 @@ preview_size = 256
 video_cache_version = 2
 fav_folder_name = ".favorites"
 root_folder = Path("test_images")
-
 
 app = Flask(__name__, template_folder='template')
 
@@ -36,7 +36,7 @@ def index():
 
 @app.route('/image')
 def get_image():
-    path = root_folder / Path(request.args.get('path'))
+    path = (root_folder / Path(request.args.get('path'))).resolve()
     if path.exists():
         is_video = path.suffixes[0] in video_types
         is_image = path.suffixes[0] in image_types
@@ -46,8 +46,8 @@ def get_image():
             return send_file(path, mimetype=('image/' + str(path.suffixes[0])[1:]))
         elif is_video:
             return send_file(path, mimetype=('video/' + str(path.suffixes[0])[1:]))
-        else:
-            return send_file("static/img/file-solid.svg", mimetype='image/svg+xml')
+        # last option
+        return send_file("static/img/file-solid.svg", mimetype='image/svg+xml')
     else:
         abort(404)
 
@@ -72,6 +72,33 @@ def set_fav():
             print("fav not changed, fav " + ("doesnt " if not fav.exists() else "") + "exists!")
 
     return "200"
+
+
+def parse_tag_data(data):
+    try:
+        if isinstance(data, IFDRational):
+            data = float(data)
+        elif isinstance(data, bytes):
+            data = data.decode()
+        elif isinstance(data, dict):
+            for key, value in data.items():
+                data[key] = parse_tag_data(value)
+        elif isinstance(data, tuple):
+            data_as_list = list()
+            for value in data:
+                data_as_list.append(parse_tag_data(value))
+            data = data_as_list
+
+    except UnicodeDecodeError:
+        return str(data)
+    except ZeroDivisionError:
+        return "NaN"
+    else:
+        try:
+            json.dumps(data)
+        except TypeError:
+            print()
+        return data
 
 
 @app.route('/files')
@@ -114,17 +141,8 @@ def get_files():
 
                                 if tag_id == 59932:
                                     continue
-                                # decode bytes
-                                try:
-                                    if isinstance(data, bytes):
-                                        data = data.decode()
-                                    elif isinstance(data, dict):
-                                        for key, value in data.items():
-                                            if isinstance(value, bytes):
-                                                data[key] = value.decode()
-                                except UnicodeDecodeError:
-                                    data = str(data)
-                                meta[str(tag)] = data
+
+                                meta[str(tag)] = parse_tag_data(data)
 
                     except UnidentifiedImageError as e:
                         print(e)
@@ -159,7 +177,6 @@ def get_files():
                     'name': f,
                     'path': str(file.relative_to(root_folder)),
                 })
-
         files.sort(key=get_date_of_file)
 
         if save_video_cache:
@@ -184,7 +201,7 @@ def get_date_of_file(file):
     return date
 
 
-def get_preview(image):
+def get_preview(image) -> Path:
     path = image.parent
     file = image.name
 
@@ -201,7 +218,7 @@ def get_preview(image):
             create_video_preview(image, preview)
         else:
             abort(500)
-    return preview
+    return preview.resolve()
 
 
 def create_image_preview(image, preview):

@@ -256,7 +256,10 @@ function loadSettings() {
 function closeModal(){
     $('#modal').removeClass('active')
 }
-function showInModal(){
+function showInModal(e){
+    if(e.target.tagName !== "IMG"){
+        return
+    }
     let modal = $('#modal')
     let media = $(this)
     let path = "/image?path=" +media.data("path")
