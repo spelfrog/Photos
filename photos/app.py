@@ -2,11 +2,11 @@ import json
 import os
 import subprocess
 from datetime import datetime
-from os.path import isfile
+from secrets import token_hex, token_urlsafe
 
 from PIL.ExifTags import TAGS
 from PIL.TiffImagePlugin import IFDRational
-from flask import send_file, jsonify, Response, abort, send_from_directory, render_template
+from flask import send_file, jsonify, Response, abort, send_from_directory, render_template, session, redirect, url_for
 from flask import Flask
 from flask import request
 from pathlib import Path
@@ -18,20 +18,35 @@ video_types = ['.mp4', ".MP4"]
 preview_size = 256
 video_cache_version = 2
 fav_folder_name = ".favorites"
-root_folder = Path("test_images")
+root_folder = Path(os.environ.get("PHOTO_FOLDER", "test_images"))
+crypto_file = Path(os.environ.get("CRYPTO_FILE", "crypt/data.json"))
+
+_crypt_data = None
 
 app = Flask(__name__, template_folder='template')
+app.secret_key = os.environ.get("secret_key", token_hex(32))
+token = os.environ.get("token", token_urlsafe(10))
+os.environ[token] = token
+
+print("Login token:", token)
 
 
 @app.route('/')
-def index():
-    return render_template("index.html")
+def home(login_failed=False):
+    if not session.get('logged_in'):
+        return render_template('login.html', login_failed=login_failed)
+    else:
+        return render_template("index.html")
 
 
-# @app.route('/stream/<path:filename>')
-# def download_file(filename):
-#     return send_from_directory(root_folder,
-#                                filename, as_attachment=True)
+@app.route('/login', methods=['POST'])
+def login():
+    form_token = str(request.form['token'])
+
+    if form_token == token:
+        session['logged_in'] = True
+
+    return redirect(url_for('home'))
 
 
 @app.route('/image')
@@ -237,4 +252,3 @@ def create_video_preview(image, preview):
         create_image_preview(preview, preview)
     else:
         abort(500)
-

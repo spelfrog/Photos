@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<form action="login" method="POST">
+    <label>
+        Password:
+        <input name="token" type="password" placeholder="Password">
+    </label>
+    {% if login_failed %}
+        <b style="color: red">Username or password wrong!</b>
+    {% endif %}
+</form>
+</body>
+</html>
