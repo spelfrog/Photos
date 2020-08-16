@@ -20,7 +20,6 @@ preview_size = 256
 video_cache_version = 2
 fav_folder_name = ".favorites"
 root_folder = Path(os.environ.get("PHOTO_FOLDER", "test_images"))
-crypto_file = Path(os.environ.get("CRYPTO_FILE", "crypt/data.json"))
 
 _crypt_data = None
 
