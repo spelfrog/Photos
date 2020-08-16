@@ -1,7 +1,8 @@
 import json
 import os
 import subprocess
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import wraps
 from secrets import token_hex, token_urlsafe
 
 from PIL.ExifTags import TAGS
@@ -28,12 +29,44 @@ app.secret_key = os.environ.get("secret_key", token_hex(32))
 token = os.environ.get("token", token_urlsafe(10))
 os.environ[token] = token
 
+failed_ips = {}
+
 print("Login token:", token)
+
+
+def login_required(test):
+    @wraps(test)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session and session['logged_in'] == True:
+            return test(*args, **kwargs)
+        else:
+            abort(401)
+    return wrap
+
+
+def get_ip():
+    return request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+
+
+def is_ip_banned(ip):
+    if ip in failed_ips:
+        failed = 0
+        some_time_ago = datetime.now() - timedelta(minutes=5)
+
+        print(failed_ips)
+        failed_ips[ip] = [fail_time for fail_time in failed_ips[ip] if fail_time > some_time_ago]
+        print(failed_ips)
+
+        return len(failed_ips[ip]) >= 3
+    else:
+        return False
 
 
 @app.route('/')
 def home(login_failed=False):
-    if not session.get('logged_in'):
+    if is_ip_banned(get_ip()):
+        abort(429)
+    elif not session.get('logged_in'):
         return render_template('login.html', login_failed=login_failed)
     else:
         return render_template("index.html")
@@ -41,15 +74,25 @@ def home(login_failed=False):
 
 @app.route('/login', methods=['POST'])
 def login():
+    ip = get_ip()
+    if is_ip_banned(ip):
+        abort(429)
+
     form_token = str(request.form['token'])
 
     if form_token == token:
         session['logged_in'] = True
+    else:
+        if ip not in failed_ips:
+            failed_ips[ip] = []
+        failed_ips[ip].append(datetime.now())
+        print("adding %s to failed ips" % str(ip))
 
     return redirect(url_for('home'))
 
 
 @app.route('/image')
+@login_required
 def get_image():
     path = (root_folder / Path(request.args.get('path'))).resolve()
     if path.exists():
@@ -68,6 +111,7 @@ def get_image():
 
 
 @app.route('/fav')
+@login_required
 def set_fav():
     path = root_folder / Path(request.args.get('file'))
     value = request.args.get('value') == "true"
@@ -117,6 +161,7 @@ def parse_tag_data(data):
 
 
 @app.route('/files')
+@login_required
 def get_files():
     path = root_folder / Path(request.args.get('path'))
     video_meta_cache_path = path / ".meta_cache.json"
