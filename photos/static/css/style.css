@@ -11,7 +11,7 @@ body{
     background-color: var(--color-dark);
 }
 .nav {
-    font-size: 2em;
+    font-size: 30px;
     font-family: sans-serif;
     border-bottom: var(--color-dark-secondary) solid 1px;
     padding: .2em;
@@ -113,7 +113,7 @@ body{
 }
 .file .overlay{
     font-family: sans-serif;
-    font-size: 8px;
+    font-size: calc( 8px * 12 / var(--images-per-row));
     position: absolute;
     bottom: 0;
     left: 0;
@@ -200,3 +200,49 @@ body{
 }
 
  */
+
+@media only screen and (max-width: 1300px) {
+    #current-path {
+        display: block;
+    }
+    #options {
+        float: none;
+        display: block;
+        text-align: center;
+    }
+    .number .separator, .number .fraction{
+        display: none;
+    }
+}
+@media only screen and (max-width: 1100px) {
+    .file .overlay div .unit, .file .overlay div .number{
+        display: none;
+    }
+
+    .file .overlay div{
+        margin: 4px;
+        padding: 3px;
+    }
+    .file .overlay {
+        font-size: calc(8px * 9 / var(--images-per-row));
+    }
+}
+@media only screen and (max-width: 600px) {
+    #current-path {
+        display: block;
+        font-size: 50%;
+    }
+    #options {
+        float: none;
+        display: block;
+        text-align: center;
+    }
+    .file .overlay {
+        font-size: calc(8px * 6 / var(--images-per-row));
+    }
+    .file .overlay div{
+        margin: 0;
+        background: none;
+    }
+
+}

@@ -168,9 +168,9 @@ function loadFolder(path) {
                             icon = "fas fa-fw fa-forward"
                         icons.append(
                             // video length bubble
-                            $("<div>").addClass("length").html(
-                                "<i class=\"" + icon + "\"></i> " + file['meta']['MediaDuration']
-                            )
+                            $("<div>").addClass("length")
+                                .append("<i class=\"" + icon + "\"></i>")
+                                .append(parseMediaDuration(file['meta']['MediaDuration']))
                         )
                     } else if (file['is_image'])
                         type = "image"
@@ -199,6 +199,18 @@ function loadFolder(path) {
                 })
             },
         });
+}
+
+function parseMediaDuration(duration){
+    let duration_parts = duration.split(" ")
+    let number_parts = duration_parts[0].split(".")
+    return $("<span>")
+        .append($("<span>").addClass("number")
+            .append($("<span>").addClass("full-number").text(number_parts[0]))
+            .append($("<span>").addClass("separator").text("."))
+            .append($("<span>").addClass("fraction").text(number_parts[1]))
+        )
+        .append($("<span>").addClass("unit").text(duration_parts[1]))
 }
 
 function get_url_parameter(param) {
