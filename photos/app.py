@@ -297,12 +297,16 @@ def get_files():
 
 
 def get_date_of_file(file):
-    if file['is_image'] and file['meta'] is not None and 'DateTime' in file['meta']:
-        date = datetime.strptime(file['meta']['DateTime'], "%Y:%m:%d %H:%M:%S")
-    elif file['is_video'] and file['meta'] is not None and \
-            'MediaCreateDate' in file['meta']:
-        date = datetime.strptime(file['meta']['MediaCreateDate'], "%Y:%m:%d %H:%M:%S")
-    else:
+    try:
+        if file['is_image'] and file['meta'] is not None and 'DateTime' in file['meta']:
+            date = datetime.strptime(file['meta']['DateTime'], "%Y:%m:%d %H:%M:%S")
+        elif file['is_video'] and file['meta'] is not None and \
+                'MediaCreateDate' in file['meta'] and file['meta']['MediaCreateDate'] != '0000:00:00 00:00:00':
+            date = datetime.strptime(file['meta']['MediaCreateDate'], "%Y:%m:%d %H:%M:%S")
+        else:
+            date = datetime.fromtimestamp(0)
+    except ValueError as e:
+        app.logger.info('Parsing DateTime or MediaCreateDate failed: %s', str(e))
         date = datetime.fromtimestamp(0)
 
     file['date'] = date
