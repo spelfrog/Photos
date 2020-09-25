@@ -134,6 +134,17 @@ function loadFolder(path) {
             complete: function () {
                 loading.removeClass("active")
             },
+            error: function(data, status_text, error) {
+                console.log(data,status_text,error)
+                if(status_text==="error"){
+                    switch (data.status) {
+                        case 401:
+                            console.error("Login expired! Reloading Page")
+                            alert("Login expired! Please login.")
+                            location.reload();
+                    }
+                }
+            },
             success: function (data) {
                 setPathDisplay(path)
                 console.log("Unknown files: ", data.unknown_files.length)

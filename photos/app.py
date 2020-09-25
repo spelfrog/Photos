@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from secrets import token_hex, token_urlsafe
 
+import flask
 from PIL.ExifTags import TAGS
 from PIL.TiffImagePlugin import IFDRational
 from flask import send_file, jsonify, Response, abort, send_from_directory, render_template, session, redirect, url_for
@@ -13,6 +14,7 @@ from flask import request
 from pathlib import Path
 from os import listdir
 from PIL import Image, ImageOps, ExifTags, UnidentifiedImageError, ImageFile
+from werkzeug.exceptions import HTTPException
 
 image_types = ['.jpg', '.JPG']
 video_types = ['.mp4', ".MP4"]
@@ -20,11 +22,13 @@ preview_size = 256
 video_cache_version = 2
 fav_folder_name = ".favorites"
 root_folder = Path(os.environ.get("PHOTO_FOLDER", "test_images"))
+disable_login = os.environ.get("disable_login", False)
 
 _crypt_data = None
 
 app = Flask(__name__, template_folder='template')
 app.secret_key = os.environ.get("secret_key", token_hex(32))
+
 token = os.environ.get("token", token_urlsafe(10))
 os.environ[token] = token
 
@@ -33,10 +37,25 @@ failed_ips = {}
 print("Login token:", token)
 
 
+@app.errorhandler(HTTPException)
+def handle_exception(e):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    response = e.get_response()
+    # replace the body with JSON
+    response.data = json.dumps({
+        "code": e.code,
+        "name": e.name,
+        "description": e.description,
+    })
+    response.content_type = "application/json"
+    return response
+
+
 def login_required(test):
     @wraps(test)
     def wrap(*args, **kwargs):
-        if 'logged_in' in session and session['logged_in'] == True:
+        if disable_login or 'logged_in' in session and session['logged_in'] == True:
             return test(*args, **kwargs)
         else:
             abort(401)
@@ -49,7 +68,6 @@ def get_ip():
 
 def is_ip_banned(ip):
     if ip in failed_ips:
-        failed = 0
         some_time_ago = datetime.now() - timedelta(minutes=5)
 
         print(failed_ips)
@@ -63,10 +81,14 @@ def is_ip_banned(ip):
 
 @app.route('/')
 def home(login_failed=False):
+    redirect_url = url_for('home')
+    if request.args.get('path', None):
+        redirect_url += "?path=" + request.args.get('path')
+
     if is_ip_banned(get_ip()):
-        abort(429)
-    elif not session.get('logged_in'):
-        return render_template('login.html', login_failed=login_failed)
+        return abort(429)
+    elif not session.get('logged_in') and not disable_login:
+        return render_template('login.html', login_failed=login_failed, login_redirect_url=redirect_url)
     else:
         return render_template("index.html")
 
@@ -75,7 +97,7 @@ def home(login_failed=False):
 def login():
     ip = get_ip()
     if is_ip_banned(ip):
-        abort(429)
+        return abort(429)
 
     form_token = str(request.form['token'])
 
@@ -87,7 +109,7 @@ def login():
         failed_ips[ip].append(datetime.now())
         print("adding %s to failed ips" % str(ip))
 
-    return redirect(url_for('home'))
+    return redirect(request.form.get('login_redirect_url', url_for('home')))
 
 
 @app.route('/image')
@@ -129,7 +151,7 @@ def set_fav():
         else:
             print("fav not changed, fav " + ("doesnt " if not fav.exists() else "") + "exists!")
 
-    return "200"
+    return jsonify(path=path, active=value), 200
 
 
 def parse_tag_data(data):
@@ -159,25 +181,59 @@ def parse_tag_data(data):
         return data
 
 
+def get_video_meta(file: Path):
+    try:
+        result = subprocess.check_output(
+            ["exiftool", "-q", "-j", file.name],
+            cwd=file.parent)
+        meta = json.loads(result.decode())[0]
+    except subprocess.CalledProcessError:
+        return None
+    else:
+        return meta
+
+
+def get_image_meta(file: Path):
+    meta = {}
+    try:
+        with Image.open(file) as image:
+            metadata = image.getexif()
+            for tag_id in metadata:
+                # get the tag name, instead of human unreadable tag id
+                tag = TAGS.get(tag_id, tag_id)
+                data = metadata.get(tag_id)
+
+                if tag_id == 59932:
+                    continue
+
+                meta[str(tag)] = parse_tag_data(data)
+    except UnidentifiedImageError as e:
+        print(e)
+        return None
+    else:
+        return meta
+
+
 @app.route('/files')
 @login_required
 def get_files():
     path = root_folder / Path(request.args.get('path'))
-    video_meta_cache_path = path / ".meta_cache.json"
-    save_video_cache = False
-    video_meta_cache = {'version': video_cache_version}
-    if video_meta_cache_path.exists():
+    meta_cache_path = path / ".meta_cache.json"
+    save_cache = False
+    meta_cache = {'version': video_cache_version}
+    if meta_cache_path.exists():
         print("Using meta cache.")
-        with open(video_meta_cache_path) as json_file:
-            video_meta_cache = json.load(json_file)
+        with open(meta_cache_path) as json_file:
+            meta_cache = json.load(json_file)
             # deleting cache if outdated
-            if video_meta_cache['version'] != video_cache_version:
-                video_meta_cache = {'version': video_cache_version}
+            if meta_cache['version'] != video_cache_version:
+                meta_cache = {'version': video_cache_version}
     files = []
     unknown_files = []
     folders = []
     if path.exists():
-        for f in listdir(path):
+        files_in_folder = listdir(path)
+        for f in files_in_folder:
             file = Path(path) / f
             if file.name.startswith("."):
                 continue
@@ -189,35 +245,24 @@ def get_files():
                 is_fav = (file.parent / fav_folder_name / file.name).exists()
 
                 meta = {}
-                if is_image:
-                    try:
-                        with Image.open(file) as image:
-                            metadata = image.getexif()
-                            for tag_id in metadata:
-                                # get the tag name, instead of human unreadable tag id
-                                tag = TAGS.get(tag_id, tag_id)
-                                data = metadata.get(tag_id)
-
-                                if tag_id == 59932:
-                                    continue
-
-                                meta[str(tag)] = parse_tag_data(data)
-
-                    except UnidentifiedImageError as e:
-                        print(e)
-                elif is_video:
-                    if file.name in video_meta_cache:
-                        meta = video_meta_cache[file.name]
+                if is_image or is_video:
+                    # if meta data in cache
+                    if file.name in meta_cache:
+                        meta = meta_cache[file.name]
                     else:
-                        try:
-                            result = subprocess.check_output(
-                                ["exiftool", "-q", "-j", file.name],
-                                cwd=file.parent)
-                            meta = json.loads(result.decode())[0]
-                            video_meta_cache[file.name] = meta
-                            save_video_cache = True
-                        except subprocess.CalledProcessError:
-                            pass
+                        if is_video:
+                            meta = get_video_meta(file)
+                        else:  # is_image
+                            meta = get_image_meta(file)
+
+                        # save new meta data if any is found
+                        if meta is not None and len(meta) != 0:
+                            meta_cache[file.name] = meta
+                            save_cache = True
+                        else:
+                            unknown_files.append({'name': f, 'path': str(file.relative_to(root_folder))})
+                            continue
+
                 else:
                     # files without video or image extension
                     unknown_files.append({'name': f, 'path': str(file.relative_to(root_folder))})
@@ -236,13 +281,17 @@ def get_files():
                     'name': f,
                     'path': str(file.relative_to(root_folder)),
                 })
+
+        # order by capture date
         files.sort(key=get_date_of_file)
 
-        if save_video_cache:
-            with open(video_meta_cache_path, 'w') as outfile:
-                json.dump(video_meta_cache, outfile)
+        if save_cache:
+            with open(meta_cache_path, 'w') as outfile:
+                json.dump(meta_cache, outfile)
 
-        return jsonify({'folders': folders, 'files': files, 'unknown_files': unknown_files})
+        # dumps is a order of magnitude faster then jsonify (in Debug mode)
+        json_encoded_files = flask.json.dumps({'folders': folders, 'files': files, 'unknown_files': unknown_files})
+        return Response(json_encoded_files, mimetype="application/json")
     else:
         abort(404)
 

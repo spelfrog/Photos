@@ -10,6 +10,9 @@
     <label>
         Password:
         <input name="token" type="password" placeholder="Password">
+        {% if login_redirect_url %}
+            <input type="hidden" name="login_redirect_url" value="{{ login_redirect_url }}">
+        {% endif %}
     </label>
     {% if login_failed %}
         <b style="color: red">Username or password wrong!</b>
