@@ -17,20 +17,20 @@ function get_size() {
         .getPropertyValue('--images-per-row');
 }
 
-function show_only_favs(active=undefined) {
+function show_only_favs(active = undefined) {
     $("#files")
         .toggleClass("show-only-favs", active);
     updateFilterIcons();
 }
 
-function show_only_videos(active=undefined) {
+function show_only_videos(active = undefined) {
     $("#files")
         .toggleClass("show-only-videos", active)
         .removeClass("show-only-images")
     updateFilterIcons();
 }
 
-function show_only_images(active=undefined) {
+function show_only_images(active = undefined) {
     $("#files")
         .toggleClass("show-only-images", active)
         .removeClass("show-only-videos")
@@ -50,17 +50,17 @@ function updateFilterIcons() {
     let type
     if (files.hasClass("show-only-images")) {
         image.addClass("active")
-        type="images"
+        type = "images"
     } else if (files.hasClass("show-only-videos")) {
         video.addClass("active")
-        type="videos"
+        type = "videos"
     } else {
         image.addClass("active")
         video.addClass("active")
-        type="all"
+        type = "all"
     }
 
-    updateSettings({show_only_favs: files.hasClass("show-only-favs"), show_only: type })
+    updateSettings({show_only_favs: files.hasClass("show-only-favs"), show_only: type})
 }
 
 function show_all() {
@@ -122,11 +122,109 @@ window.onpopstate = function (e) {
     }
 };
 
+function displayFolders(folders) {
+    let folders_dom = $('#folders');
+    //cleaning
+    folders_dom.html("")
+    //filling
+    folders.forEach(folder => {
+        folders_dom.append(
+            $("<div>").addClass("folder").text(folder['name']).on("click", function () {
+                loadFolder(folder['path'])
+            })
+        )
+    })
+    folders_dom.append(
+        $("<div>").addClass("folder").text("+").prop("title", "New Folder")
+            .on("click", function () {
+                alert("Not implemented")
+            })
+    )
+}
+
+function displayFiles(files) {
+    let files_dom = $('#files');
+    //cleaning
+    files_dom.html("")
+    //filling
+
+    let year = -1
+    let folder
+    files.forEach((file, index) => {
+        let date = new Date(file.date);
+
+        // Insert divider if year changes
+        if (year !== date.getFullYear()) {
+            year = date.getFullYear()
+            if(year===1970)
+                year = "WhatsApp (no date)"
+            folder = $('<div>')
+                .append($('<div>').text(year).addClass("files-divider"))
+                .appendTo(files_dom)
+
+            if (files.length > 500) {
+                folder
+                    .addClass("load-later")
+                    .append($("<a>")
+                        .addClass("load-more")
+                        .text("load year")
+                        .click(function(){
+                            $(this).closest(".load-later").removeClass("load-later")
+                        })
+                    )
+
+            }
+        }
+
+        folder.append(makeFileElement(file, index))
+    })
+}
+
+function makeFileElement(file) {
+    let orientation = file['meta']['Orientation']
+    let type = "other";
+    let fav = file['is_fav'] ? "fas" : "far"
+    let icons = $("<div>").addClass("overlay")
+
+    if (file['is_video']) {
+        type = "video"
+        let icon = "fas fa-fw fa-play"
+        if (file['meta']['VideoFrameRate'] > 80)
+            icon = "fas fa-fw fa-forward"
+        icons.append(
+            // video length bubble
+            $("<div>").addClass("length")
+                .append("<i class=\"" + icon + "\"></i>")
+                .append(parseMediaDuration(file['meta']['MediaDuration']))
+        )
+    } else if (file['is_image'])
+        type = "image"
+
+    // fav / heard icon
+    icons.append(
+        $("<div>").addClass("fav").append(
+            $("<i class=\"" + fav + " fa-heart\"></i>").on("click", set_fav)
+        )
+    )
+
+    let image_src = "src='/image?preview=true&path=" + file['path'] + "'"
+
+    return $("<div>")
+        .addClass("file")
+        .addClass(file['is_fav'] ? "fav" : "")
+        .addClass("type-" + type)
+        .data("path", file['path'])
+        .click(showInModal)
+        .append(
+            $("<img " + image_src + ">")
+                .addClass("orientation-" + orientation)
+                .prop("title", file['name'] + "\n" + file['date'])
+        ).append(icons)
+}
 
 function loadFolder(path) {
     let loading = $("#loading-indicator").addClass("active")
-    let files = $('#files');
-    let folders = $('#folders');
+
     $.ajax("/files",
         {
             url: "",
@@ -134,9 +232,9 @@ function loadFolder(path) {
             complete: function () {
                 loading.removeClass("active")
             },
-            error: function(data, status_text, error) {
-                console.log(data,status_text,error)
-                if(status_text==="error"){
+            error: function (data, status_text, error) {
+                console.log(data, status_text, error)
+                if (status_text === "error") {
                     switch (data.status) {
                         case 401:
                             console.error("Login expired! Reloading Page")
@@ -148,71 +246,14 @@ function loadFolder(path) {
             success: function (data) {
                 setPathDisplay(path)
                 console.log("Unknown files: ", data.unknown_files.length)
-                // clearing
-                folders.html("")
-                files.html("")
-                // filling
-                data['folders'].forEach(folder => {
-                    folders.append(
-                        $("<div>").addClass("folder").text(folder['name']).on("click", function () {
-                            loadFolder(folder['path'])
-                        })
-                    )
-                })
-                folders.append(
-                    $("<div>").addClass("folder").text("+").prop("title", "New Folder")
-                        .on("click", function () {
-                            alert("Not implemented")
-                        })
-                )
 
-                data['files'].forEach(file => {
-                    let orientation = file['meta']['Orientation']
-                    let type = "other";
-                    let fav = file['is_fav'] ? "fas" : "far"
-                    let icons = $("<div>").addClass("overlay")
-
-                    if (file['is_video']) {
-                        type = "video"
-                        let icon = "fas fa-fw fa-play"
-                        if (file['meta']['VideoFrameRate'] > 80)
-                            icon = "fas fa-fw fa-forward"
-                        icons.append(
-                            // video length bubble
-                            $("<div>").addClass("length")
-                                .append("<i class=\"" + icon + "\"></i>")
-                                .append(parseMediaDuration(file['meta']['MediaDuration']))
-                        )
-                    } else if (file['is_image'])
-                        type = "image"
-
-                    // fav / heard icon
-                    icons.append(
-                        $("<div>").addClass("fav").append(
-                            $("<i class=\"" + fav + " fa-heart\"></i>").on("click", set_fav)
-                        )
-                    )
-
-
-                    files.append(
-                        $("<div>")
-                            .addClass("file")
-                            .addClass(file['is_fav'] ? "fav" : "")
-                            .addClass("type-" + type)
-                            .data("path", file['path'])
-                            .click(showInModal)
-                            .append(
-                            $("<img src='/image?preview=true&path=" + file['path'] + "'>")
-                                .addClass("orientation-" + orientation)
-                                .prop("title", file['name'] + "\n" + file['date'])
-                        ).append(icons)
-                    )
-                })
+                displayFolders(data['folders'])
+                displayFiles(data['files'])
             },
         });
 }
 
-function parseMediaDuration(duration){
+function parseMediaDuration(duration) {
     let duration_parts = duration.split(" ")
     let number_parts = duration_parts[0].split(".")
     return $("<span>")
@@ -235,7 +276,7 @@ function get_url_parameter(param) {
 
 function updateSettings(new_settings) {
     let settings = getSettings();
-    console.log("Settings:",settings)
+    console.log("Settings:", settings)
     if (!settings) {
         settings = {}
     }
@@ -262,33 +303,35 @@ function getSettings() {
 function loadSettings() {
     let settings = getSettings()
     if (settings) {
-        if(settings.size)
+        if (settings.size)
             set_size(settings.size)
 
-        if(settings.show_only === "all")
+        if (settings.show_only === "all")
             show_all()
-        else if(settings.show_only === "videos")
+        else if (settings.show_only === "videos")
             show_only_videos(true)
-        else if(settings.show_only === "images")
+        else if (settings.show_only === "images")
             show_only_images(true)
 
-        if(settings.show_only_favs)
+        if (settings.show_only_favs)
             show_only_favs(settings.show_only_favs)
     }
 }
-function closeModal(){
+
+function closeModal() {
     $('#modal').removeClass('active')
 }
-function showInModal(e){
-    if(e.target.tagName !== "IMG"){
+
+function showInModal(e) {
+    if (e.target.tagName !== "IMG") {
         return
     }
     let modal = $('#modal')
     let media = $(this)
-    let path = "/image?path=" +media.data("path")
+    let path = "/image?path=" + media.data("path")
 
     let media_dom
-    if(media.hasClass('type-video')){
+    if (media.hasClass('type-video')) {
         media_dom = $('<video controls>')
         media_dom.append(
             $('<source>')
@@ -297,7 +340,7 @@ function showInModal(e){
                 .prop('type', "video/mp4")
         )
 
-    }else if(media.hasClass('type-image')){
+    } else if (media.hasClass('type-image')) {
         media_dom = $('<img>').prop('src', path)
     }
 

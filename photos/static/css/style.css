@@ -92,8 +92,33 @@ body{
 .folder:hover {
     background-color: var(--color-dark-secondary);
 }
+
+.load-later .file {
+    display: none;
+}
+.load-more{
+    display: none;
+}
+.load-later .load-more {
+    display: block;
+    font-size: initial;
+    color: var(--color-light-primary);
+    padding: 1em;
+    margin: 1em;
+    text-align: center;
+    cursor: pointer;
+}
+
+
 #files{
     font-size: 0;
+}
+
+#files .files-divider{
+    font-size: initial;
+    color: var(--color-light-primary);
+    text-align: center;
+    padding: .25em;
 }
 
 .show-only-favs .file{
