@@ -1,7 +1,8 @@
 :root{
     --images-per-row: 6;
     --color-dark: #000000;
-    --color-dark-secondary: #14213d;
+    --color-dark-primary: #14213d;
+    --color-dark-secondary: #2b2c40;
     --color-highlight: #fca311;
     --color-light-secondary: #aaa;
     --color-light-primary: #ffffff;
@@ -9,13 +10,14 @@
 body{
     margin: 0;
     background-color: var(--color-dark);
+    font-family: sans-serif;
 }
 .nav {
     font-size: 30px;
-    font-family: sans-serif;
-    border-bottom: var(--color-dark-secondary) solid 1px;
+    background: var(--color-dark-primary);
     padding: .2em;
     color: var(--color-light-primary);
+    border-bottom: solid 1px var(--color-dark-secondary);
 }
 #current-path {
     display: inline-block;
@@ -29,7 +31,7 @@ body{
     border-radius: 0.2em;
 }
 #current-path .folder-name:hover{
-    background-color: var(--color-dark-secondary);
+    background-color: var(--color-dark-primary);
 }
 #current-path .divider{
     color: var(--color-light-secondary);
@@ -83,14 +85,14 @@ body{
 }
 .folder {
     color: var(--color-light-primary);
-    border: var(--color-dark-secondary) solid 3px;
+    border: var(--color-dark-primary) solid 3px;
     border-radius: 4px;
     padding: 8px;
     margin: 8px;
     transition: background-color 500ms;
 }
 .folder:hover {
-    background-color: var(--color-dark-secondary);
+    background-color: var(--color-dark-primary);
 }
 
 .load-later .file {
@@ -213,18 +215,6 @@ body{
     height: 100%;
     object-fit: scale-down;
 }
-/*
-#modal .media-container {
-    display: flex;
-    flex-direction: row;
-    padding: 10%;
-}
-#modal .media-container img,
-#modal .media-container video{
-
-}
-
- */
 
 @media only screen and (max-width: 1300px) {
     #current-path {
