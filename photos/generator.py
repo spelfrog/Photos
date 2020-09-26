@@ -1,5 +1,6 @@
 import getopt
 from datetime import datetime
+from multiprocessing import Pool
 from os import listdir
 from pathlib import Path
 
@@ -31,18 +32,22 @@ def get_files(path):
     return files, unknown_files, folders
 
 
-def make_thumbnails(location, recursive=0):
+def make_preview(file):
+    try:
+        get_preview(file)
+    except Exception:
+        print("Failed %s" % file, file=sys.stderr)
+        return 0
+    else:
+        return 1
+
+
+def make_thumbnails(location, recursive=0, threads=None):
     print("Scanning", str(location), end=' ')
-    counter = 0
     files, unknown_files, folders = get_files(location)
 
-    for file in files:
-        try:
-            get_preview(file)
-        except Exception:
-            print("Failed %s" % file, file=sys.stderr)
-        else:
-            counter += 1
+    with Pool(threads) as p:
+        counter = sum(p.map(make_preview, files))
 
     print(" -> ", counter, "Thumbnails")
 
@@ -56,8 +61,10 @@ def make_thumbnails(location, recursive=0):
 def main(param):
     recursive = 0
     folder = ""
+    threads = None
+
     try:
-        opts, args = getopt.getopt(param, "r:f:", ["recursive=", "folder="])
+        opts, args = getopt.getopt(param, "r:f:t:", ["recursive=", "folder=", "threads="])
     except getopt.GetoptError:
         sys.exit(2)
     for opt, arg in opts:
@@ -65,11 +72,13 @@ def main(param):
             recursive = int(arg)
         elif opt in ("-f", "--folder"):
             folder = arg
+        elif opt in ("-t", "--threads"):
+            threads = int(arg)
 
     print("recursive depth:", recursive)
 
     start = datetime.now()
-    thumbnails = make_thumbnails(root_folder / folder, recursive)
+    thumbnails = make_thumbnails(root_folder / folder, recursive, threads)
 
     duration = datetime.now()-start
     print(thumbnails, "Thumbnails waked over", str(duration))
